@@ -1,0 +1,36 @@
+############################################
+# Python
+############################################
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+venv/
+
+############################################
+# Project files to ignore
+############################################
+Project_Plan_File_indexer.txt
+file_indexer/project_plan_file_indexer.txt
+
+############################################
+# Data (DO NOT COMMIT REAL DATA)
+############################################
+# Ignore entire workspace and samples folders
+data/samples/
+data/workspace/
+
+# Ignore DB / Log files
+*.sqlite
+*.db
+*.log
+
+############################################
+# OS / Editor specific files
+############################################
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
