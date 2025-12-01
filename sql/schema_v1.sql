@@ -5,6 +5,8 @@ CREATE TABLE library (
     note       TEXT,
     created_at TEXT NOT NULL
 );
+
+
 CREATE TABLE entries (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     library_id  INTEGER NOT NULL,          -- 来自哪个库

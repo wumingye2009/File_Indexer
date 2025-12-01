@@ -1,27 +1,94 @@
-# src/file_indexer/create_db.py
+# create_db.py
 import sqlite3
+import argparse
+from datetime import datetime
 from pathlib import Path
 
-# 项目根目录 = 本文件的上上级目录（src/file_indexer 的上级再上级）
-ROOT_DIR = Path(__file__).resolve().parents[2]
+DB_PATH_DEFAULT = "data/workspace/archive_work.db"
 
-DB_PATH = ROOT_DIR / "data" / "workspace" / "archive_work.db"
-SCHEMA_FILE = ROOT_DIR / "sql" / "schema_v1.sql"
+SCHEMA_SQL = """
+PRAGMA foreign_keys = ON;
 
-def create_db():
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+CREATE TABLE IF NOT EXISTS library (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    root_path  TEXT NOT NULL,
+    note       TEXT,
+    created_at TEXT NOT NULL
+);
 
-    print(f"[INFO] Initializing database at: {DB_PATH}")
-    print(f"[INFO] Using schema file: {SCHEMA_FILE}")
+CREATE TABLE IF NOT EXISTS entries (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    library_id  INTEGER NOT NULL,
+    full_path   TEXT NOT NULL,
+    parent_path TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    ext         TEXT,
+    is_dir      INTEGER NOT NULL,
+    is_archive  INTEGER NOT NULL DEFAULT 0,
+    size_bytes  INTEGER,
+    mtime       REAL,
+    hash_algo   TEXT,
+    hash_value  TEXT,
+    extra_meta  TEXT,
+    FOREIGN KEY (library_id) REFERENCES library(id)
+);
 
-    conn = sqlite3.connect(DB_PATH)
+CREATE INDEX IF NOT EXISTS idx_entries_lib
+    ON entries(library_id);
+
+CREATE INDEX IF NOT EXISTS idx_entries_hash
+    ON entries(hash_value);
+
+CREATE INDEX IF NOT EXISTS idx_entries_size
+    ON entries(size_bytes);
+
+CREATE INDEX IF NOT EXISTS idx_entries_full_path
+    ON entries(full_path);
+
+CREATE TABLE IF NOT EXISTS archives (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    library_id        INTEGER NOT NULL,
+    archive_full_path TEXT NOT NULL,
+    archive_entry_id  INTEGER,
+    member_path       TEXT NOT NULL,
+    member_size       INTEGER,
+    member_mtime      REAL,
+    hash_algo         TEXT,
+    hash_value        TEXT,
+    extra_meta        TEXT,
+    FOREIGN KEY (library_id)       REFERENCES library(id),
+    FOREIGN KEY (archive_entry_id) REFERENCES entries(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_archives_hash
+    ON archives(hash_value);
+
+CREATE INDEX IF NOT EXISTS idx_archives_archive
+    ON archives(archive_full_path);
+"""
+
+def create_db(db_path: str = DB_PATH_DEFAULT):
+    db_path = Path(db_path)
+    db_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure folder exists
+
+    conn = sqlite3.connect(str(db_path))
     try:
-        schema_sql = SCHEMA_FILE.read_text(encoding="utf-8")
-        conn.executescript(schema_sql)
+        conn.executescript(SCHEMA_SQL)
         conn.commit()
-        print("[OK] Database initialized successfully.")
+        print(f"[OK] Database initialized at: {db_path}")
     finally:
         conn.close()
 
+
 if __name__ == "__main__":
-    create_db()
+    parser = argparse.ArgumentParser(description="Create SQLite DB with schema")
+    parser.add_argument(
+        "--db",
+        type=str,
+        default=DB_PATH_DEFAULT,
+        help=f"Output DB path (default: {DB_PATH_DEFAULT})"
+    )
+
+    args = parser.parse_args()
+    create_db(args.db)
