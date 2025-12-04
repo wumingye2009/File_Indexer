@@ -1,3 +1,8 @@
+-- 1. 重建 dup_check
+DROP TABLE IF EXISTS dup_check;
+
+CREATE TABLE dup_check AS
+
 WITH dup AS (
     SELECT
         e.id,
@@ -37,3 +42,7 @@ FROM dup d
 JOIN library l
   ON d.library_id = l.id
 ORDER BY d.hash_value, filename;
+
+-- 2. 建索引
+CREATE INDEX idx_dup_hash ON dup_check(hash_value);
+CREATE INDEX idx_dup_folder ON dup_check(folder_path);
